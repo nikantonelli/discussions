@@ -12,6 +12,7 @@
     componentCls: 'app',
     
 launch: function() {
+    var that =  this;
         var millisecondsInDay = 86400000;
         var currentDate = new Date();
         var startDate = new Date(currentDate - millisecondsInDay*30); //in the last 30 days
@@ -26,43 +27,63 @@ launch: function() {
             }	
    	];
         
-        var myStore = Ext.create('Rally.data.WsapiDataStore',{
+        Ext.create('Rally.data.WsapiDataStore',{
    		model: 'ConversationPost',
 		autoLoad: true,
 		remoteSort: false,
-   		fetch: ['Artifact','Text','CreationDate', 'User', 'FormattedID'],
+   		fetch: ['Artifact','Text','CreationDate', 'User', 'FormattedID', 'ScheduleState', 'PlanEstimate'],
    		filters: this._filters,
    		listeners: {
-   			load: function(store,records,success){
-   				console.log("loaded %i records", records.length);
-   				this._makeGrid(myStore);
-   			},
-   			scope:this
+   		    load: that._onConversationsLoaded,
+   		    scope:this
    		}
    	});
 
    },
+   _onConversationsLoaded: function(store,data){
+        var posts = [];
+        _.each(data, function(post) {
+            var p  = {
+                User: post.get('User')._refObjectName,
+                Text: post.get('Text'),
+                CreationDate: post.get('CreationDate'),
+                Name: post.get('Artifact').FormattedID,
+                Artifact: post.get('Artifact').FormattedID,
+                ScheduleState: post.get('Artifact').ScheduleState,
+                PlanEstimate: post.get('Artifact').PlanEstimate
+            };
+            posts.push(p);
+            });
+        this._createGrid(posts);
+   },
    
-   _makeGrid: function(myStore){
-    console.log('make grid');
-   	this._myGrid = Ext.create('Rally.ui.grid.Grid', {
-		store: myStore,	
-   		columnCfgs: [
-   			{text: 'Artifact', dataIndex: 'Artifact', flex: 1,
-                            renderer: function(artifact){
-				return '<a href="' + Rally.nav.Manager.getDetailUrl(artifact) + '">' + artifact.FormattedID + '</a>'
-			}
-                        },
-   			{text: 'Text', dataIndex: 'Text', flex: 2},
-			{text: 'CreationDate', dataIndex: 'CreationDate', flex: 1},
-			{text: 'User', dataIndex: 'User', flex: 1},
-   		],
-		height: 650
-
-   	});
-   	this.add(this._myGrid);
-   }
-   
+   _createGrid: function(posts) {
+        _store = Ext.create('Rally.data.custom.Store', {
+                data: posts,
+                groupField: 'Artifact',
+                pageSize: 100,  
+            });
+        if (!this.grid) {
+        this.grid = this.add({
+            xtype: 'rallygrid',
+            itemId: 'mygrid',
+            store: _store,
+            features: [{ftype:'grouping'}],
+            columnCfgs: [
+                {
+                   text: 'Artifact', dataIndex: 'Artifact'
+                },
+                {text: 'Schedule State', dataIndex: 'ScheduleState'},
+                {text: 'Plan Estimate', dataIndex: 'PlanEstimate'},
+                {text: 'Conversation Post Text', dataIndex: 'Text',flex: 1},
+                {text: 'Conversation Post Creation Date', dataIndex: 'CreationDate', flex: 1}
+            ]
+        });
+         
+         }else{
+            this.grid.reconfigure(_store);
+         }
+    }
 
 });
 
