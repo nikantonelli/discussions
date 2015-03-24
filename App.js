@@ -18,16 +18,16 @@ launch: function() {
             }	
    	];
         
-        Ext.create('Rally.data.WsapiDataStore',{
-   		model: 'ConversationPost',
-		autoLoad: true,
-		remoteSort: false,
-   		fetch: ['Artifact','Text','CreationDate', 'User', 'FormattedID', 'ScheduleState', 'PlanEstimate'],
-   		filters: this._filters,
-   		listeners: {
-   		    load: that._onConversationsLoaded,
-   		    scope:this
-   		}
+        Ext.create('Rally.data.wsapi.Store',{
+	    model: 'ConversationPost',
+	    autoLoad: true,
+	    remoteSort: false,
+	    fetch: ['Artifact','Text','CreationDate', 'User', 'FormattedID', 'ScheduleState', 'PlanEstimate'],
+	    filters: this._filters,
+	    listeners: {
+		load: that._onConversationsLoaded,
+		scope:this
+	    }
    	});
 
    },
@@ -52,7 +52,7 @@ launch: function() {
         _store = Ext.create('Rally.data.custom.Store', {
                 data: posts,
                 groupField: 'Artifact',
-                pageSize: 100,  
+                pageSize: 100
             });
         if (!this.grid) {
         this.grid = this.add({
