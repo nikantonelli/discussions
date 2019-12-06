@@ -27,16 +27,17 @@ launch: function() {
    	];
         
     Ext.create('Rally.data.wsapi.artifact.Store',{
-        models: ['UserStory'],
+        models: ['UserStory', 'Defect', 'Task'],
         context: this.getContext().getDataContext(),
-	    autoLoad: true,
+        autoLoad: true,
+        remoteSort: false,
 	    // sorters: [
         // {
         //     property: 'CreationDate',
         //     direction: 'DESC'
         // }
         // ],
-	    fetch: ['FormattedID','Discussion', 'LatestDiscussionAgeInMinutes','CreationDate', 'Name', 'State', 'ScheduleState', 'Owner', 'PlanEstimate'],
+	    fetch: ['FormattedID','TargetDate', 'Discussion', 'LatestDiscussionAgeInMinutes','LastUpdateDate', 'Name', 'State', 'ScheduleState', 'Owner', 'PlanEstimate'],
 	    filters: this._filters,
 	    listeners: {
 		load: that._onArtifactsLoaded,
@@ -50,7 +51,6 @@ launch: function() {
         // this._createGrid(_.sortBy( data, function(record) {
         //     return record.get('LatestDiscussionAgeInMinutes')
         // }));
-
         store.sort( {
             property: 'LatestDiscussionAgeInMinutes',
             direction: 'ASC'
@@ -61,7 +61,11 @@ launch: function() {
    _createGrid: function(data) {
 
         _.each(data, function(record) {
-            record.lastPost = '';
+            record.raw.lastPost = '';
+            record.raw.posts = Ext.create('Rally.data.wsapi.Store' , {
+                model: 'ConversationPost',
+                data: []
+            })
         });
 
         _store = Ext.create('Rally.data.custom.Store', {
@@ -75,32 +79,45 @@ launch: function() {
             xtype: 'rallygrid',
             itemId: 'mygrid',
             store: _store,
-            plugins: [{
-                ptype: 'rowexpander',
-                rowBodyTpl : new Ext.XTemplate(
-                    '{record:this.getRenderer}',
-                    {
-                        getRenderer: function(record) {
-                            // debugger;
-                            return Rally.ui.renderer.RendererFactory.getRenderTemplate('Discussions');
-                        }
-                    }
-                )
-            }],
+    //         listeners: {
+    //             onExpandBody: function(record) {
+    //                 debugger;
+    //            var ret = '';
+    //            if (record.data.posts) {
+    //                _.each(record.data.posts, function(post) {
+    //                    ret += '<p>' + post.get('Text') + '</p>';
+    //                });
+    //            }
+    //            return ret;
+    //    }                
+
+    //         },
+            // plugins: [{
+            //     ptype: 'rowexpander',
+            //     rowBodyTpl: new Ext.XTemplate('{[this.getData(values)]}',
+            //         {
+            //             getData: function(values) {
+            //                 debugger;
+            //                 return 'Fetching...';
+            //             }
+            //         }
+            //     )
+            // }],
             collapsible: true,
             columnCfgs: [
                 {
                    text: 'Artifact', dataIndex: 'FormattedID'
                 },
                 {text: 'Title', dataIndex: 'Name', flex: 1},
+                {text: 'Last Artefact Update', dataIndex: 'LastUpdateDate', xtype: 'datecolumn', format: 'F j, Y, g:i a'},
                 {text: 'Schedule State', dataIndex: 'ScheduleState'},
                 {
                     text: 'Plan Estimate', 
                     dataIndex: 'PlanEstimate',
-                    style: 'textAlign:center'
                 },
                 {text: 'Last Post', flex: 2, dataIndex: 'lastPost', renderer: function(cellvalue, cell, record, idx, count, store, grid) {
-                    if ((record.posts === undefined) && (record.get('Discussion').Count > 0)) {
+                    if ((record.raw.posts.getRecords().length === 0) && (record.get('Discussion').Count > 0)) {
+
                         record.getCollection('Discussion').load({
                             fetch: ['Text', 'CreationDate'],
                             sorters: [
@@ -111,7 +128,10 @@ launch: function() {
                             ],
                             callback: function (records, operation, success) {
                                 if (success) {
-                                    record.posts = records;
+                                    _.each(records, function(item) {
+                                        console.log('adding: ', item, ' to: ', record.raw.posts);
+                                        record.raw.posts.add(item);
+                                    })
                                     record.set('lastPost', records[0].get('Text'));   //If we have ordered the right way, we will have the latest first.
                                 }else {
                                     record.set('lastPost','');
