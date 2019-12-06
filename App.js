@@ -6,8 +6,7 @@ launch: function() {
     var that =  this;
     var minutesInDay = 1440;
     var daysToSee = 14;
-    
-//    this._filters = [];
+
     this._filters = [
             {
             property : 'LastUpdateDate',
@@ -22,12 +21,6 @@ launch: function() {
         context: this.getContext().getDataContext(),
         autoLoad: true,
         remoteSort: false,
-	    // sorters: [
-        // {
-        //     property: 'CreationDate',
-        //     direction: 'DESC'
-        // }
-        // ],
 	    fetch: ['FormattedID','TargetDate', 'Discussion', 'LatestDiscussionAgeInMinutes','LastUpdateDate', 'Name', 'State', 'ScheduleState', 'Owner', 'PlanEstimate'],
 	    filters: this._filters,
 	    listeners: {
@@ -38,10 +31,6 @@ launch: function() {
 
    },
    _onArtifactsLoaded: function(store,data){
-        //Sort the records into the order of most recent post.
-        // this._createGrid(_.sortBy( data, function(record) {
-        //     return record.get('LatestDiscussionAgeInMinutes')
-        // }));
         store.sort( {
             property: 'LatestDiscussionAgeInMinutes',
             direction: 'ASC'
@@ -50,14 +39,6 @@ launch: function() {
    },
    
    _createGrid: function(data) {
-
-        _.each(data, function(record) {
-            record.raw.lastPost = '';
-            record.raw.posts = Ext.create('Rally.data.wsapi.Store' , {
-                model: 'ConversationPost',
-                data: []
-            })
-        });
 
         _store = Ext.create('Rally.data.custom.Store', {
                 data: data,
@@ -70,30 +51,6 @@ launch: function() {
             xtype: 'rallygrid',
             itemId: 'mygrid',
             store: _store,
-    //         listeners: {
-    //             onExpandBody: function(record) {
-    //                 debugger;
-    //            var ret = '';
-    //            if (record.data.posts) {
-    //                _.each(record.data.posts, function(post) {
-    //                    ret += '<p>' + post.get('Text') + '</p>';
-    //                });
-    //            }
-    //            return ret;
-    //    }                
-
-    //         },
-            // plugins: [{
-            //     ptype: 'rowexpander',
-            //     rowBodyTpl: new Ext.XTemplate('{[this.getData(values)]}',
-            //         {
-            //             getData: function(values) {
-            //                 debugger;
-            //                 return 'Fetching...';
-            //             }
-            //         }
-            //     )
-            // }],
             collapsible: true,
             columnCfgs: [
                 {
@@ -107,7 +64,7 @@ launch: function() {
                     dataIndex: 'PlanEstimate',
                 },
                 {text: 'Last Post', flex: 2, dataIndex: 'lastPost', renderer: function(cellvalue, cell, record, idx, count, store, grid) {
-                    if ((record.raw.posts.getRecords().length === 0) && (record.get('Discussion').Count > 0)) {
+                    if ((record.get('lastPost') === undefined) && (record.get('Discussion').Count > 0)) {
 
                         record.getCollection('Discussion').load({
                             fetch: ['Text', 'CreationDate'],
@@ -119,10 +76,6 @@ launch: function() {
                             ],
                             callback: function (records, operation, success) {
                                 if (success) {
-                                    _.each(records, function(item) {
-                                        console.log('adding: ', item, ' to: ', record.raw.posts);
-                                        record.raw.posts.add(item);
-                                    })
                                     record.set('lastPost', records[0].get('Text'));   //If we have ordered the right way, we will have the latest first.
                                 }else {
                                     record.set('lastPost','');
@@ -147,9 +100,6 @@ launch: function() {
         });
          
          }
-        //  else{
-        //     this.grid.reconfigure(_store);
-        //  }
     }
 
 });
