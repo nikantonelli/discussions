@@ -17,7 +17,7 @@ launch: function() {
    	];
         
     Ext.create('Rally.data.wsapi.artifact.Store',{
-        models: ['UserStory', 'Defect', 'Task'],
+        models: ['UserStory', 'Defect', 'Task', 'PortfolioItem/Feature', 'PortfolioItem/Initiative', 'PortfolioItem/Theme'],
         context: this.getContext().getDataContext(),
         autoLoad: true,
         remoteSort: false,
@@ -32,8 +32,8 @@ launch: function() {
    },
    _onArtifactsLoaded: function(store,data){
         store.sort( {
-            property: 'LatestDiscussionAgeInMinutes',
-            direction: 'ASC'
+            property: 'LastUpdateDate',
+            direction: 'DESC'
         });
         this._createGrid(store.getRecords());
    },
@@ -42,7 +42,7 @@ launch: function() {
 
         _store = Ext.create('Rally.data.custom.Store', {
                 data: data,
-                groupField: 'FormattedID',
+//                groupField: 'FormattedID',
                 pageSize: 100
             });
         if (!this.grid) {
@@ -58,16 +58,27 @@ launch: function() {
                 },
                 {text: 'Title', dataIndex: 'Name', flex: 1},
                 {text: 'Last Artefact Update', dataIndex: 'LastUpdateDate', xtype: 'datecolumn', format: 'F j, Y, g:i a'},
-                {text: 'Schedule State', dataIndex: 'ScheduleState'},
-                {
-                    text: 'Plan Estimate', 
-                    dataIndex: 'PlanEstimate',
+                {text: 'State', dataIndex: 'ScheduleState', renderer: function(cellvalue, cell, record, idx, count, store, grid) {
+                        if (record && record.hasField('ScheduleState')) {
+                            return record.get('ScheduleState');
+                        }
+                        else if (record && record.hasField('State') && record.get('State')) {
+                            return record.get('State').Name;
+                        }
+                        else {
+                            return '';
+                        }
+                    }
                 },
+                // {
+                //     text: 'Plan Estimate', 
+                //     dataIndex: 'PlanEstimate',
+                // },
                 {text: 'Last Post', flex: 2, dataIndex: 'lastPost', renderer: function(cellvalue, cell, record, idx, count, store, grid) {
                     if ((record.get('lastPost') === undefined) && (record.get('Discussion').Count > 0)) {
 
                         record.getCollection('Discussion').load({
-                            fetch: ['Text', 'CreationDate'],
+                            fetch: ['Text', 'CreationDate', 'User'],
                             sorters: [
                                 {
                                     property: 'CreationDate',
@@ -77,8 +88,10 @@ launch: function() {
                             callback: function (records, operation, success) {
                                 if (success) {
                                     record.set('lastPost', records[0].get('Text'));   //If we have ordered the right way, we will have the latest first.
+                                    record.set('AddedBy', records[0].get('User'));
                                 }else {
                                     record.set('lastPost','');
+                                    record.set('AddedBy', '');
                                 }
                             }
                         });
@@ -95,7 +108,11 @@ launch: function() {
                             return null;
                         }
                     }
-                }
+                },
+                {text: 'Added By', dataIndex: 'AddedBy', renderer: function(cellvalue, cell, record, idx, count, store, grid) {
+                    console.log(record);
+                    return (record && record.get('AddedBy'))?record.get('AddedBy')._refObjectName: '';
+                }}
             ]
         });
          
