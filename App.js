@@ -3,7 +3,7 @@ Ext.define('CustomApp', {
     componentCls: 'app',
     
 launch: function() {
-    var that =  this;
+
     var minutesInDay = 1440;
     var daysToSee = 14;
 
@@ -14,11 +14,64 @@ launch: function() {
             value : Ext.Date.subtract(new Date(), Ext.Date.MINUTE, minutesInDay * daysToSee)
             
         }	
-   	];
-        
-    Ext.create('Rally.data.wsapi.artifact.Store',{
-        models: ['UserStory', 'Defect', 'Task', 'PortfolioItem/Feature', 'PortfolioItem/Initiative', 'PortfolioItem/Theme'],
+    ];
+
+    this._loadModels().then({
+        success: this._getStore,
+        scope: this
+    });
+},
+
+_loadModels: function() {
+    var deferred = Ext.create('Deft.Deferred');
+
+    Ext.create('Rally.data.wsapi.Store', {
         context: this.getContext().getDataContext(),
+        autoLoad: true,
+        remoteFilter: true,
+        model: Ext.identityFn('TypeDefinition'),
+        sorters: {
+            property: 'Ordinal',
+            direction: 'Desc'
+        },
+        filters: [
+            {
+                property: 'Parent.Name',
+                operator: '=',
+                value: 'Portfolio Item'
+            },
+            {
+                property: 'Creatable',
+                operator: '=',
+                value: 'true'
+            }
+        ],
+        listeners : {
+            load: function(store, records, success) {
+                if (success) {
+                    deferred.resolve(records);
+                }
+                else {
+                    deferred.reject(null);
+                }
+            }
+        }
+    });
+
+    return deferred.promise;
+},
+
+_getStore: function(records){
+    var that =  this;  
+    var modelList = ['UserStory', 'Defect', 'Task' ];
+
+    _.each(records, function (record) {
+        modelList.push(record.get('TypePath'));
+    });
+
+    Ext.create('Rally.data.wsapi.artifact.Store',{
+        models: modelList,
+        context: that.getContext().getDataContext(),
         autoLoad: true,
         remoteSort: false,
 	    fetch: ['FormattedID','TargetDate', 'Discussion', 'LatestDiscussionAgeInMinutes','LastUpdateDate', 'Name', 'State', 'ScheduleState', 'Owner', 'PlanEstimate'],
