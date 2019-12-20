@@ -57,6 +57,15 @@ launch: function() {
                    text: 'Artifact', dataIndex: 'FormattedID'
                 },
                 {text: 'Title', dataIndex: 'Name', flex: 1},
+                {text: 'Owner', dataIndex: 'Owner', renderer: function(cellvalue, cell, record, idx, count, store, grid) {
+                        if (record && record.get('Owner')) {
+                            return record.get('Owner')._refObjectName;
+                        }
+                        else {
+                            return '';
+                        }
+                    }
+                },
                 {text: 'Last Artefact Update', dataIndex: 'LastUpdateDate', xtype: 'datecolumn', format: 'F j, Y, g:i a'},
                 {text: 'State', dataIndex: 'ScheduleState', renderer: function(cellvalue, cell, record, idx, count, store, grid) {
                         if (record && record.hasField('ScheduleState')) {
