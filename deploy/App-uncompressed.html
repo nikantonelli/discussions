@@ -61,6 +61,12 @@ launch: function() {
             itemId: 'mygrid',
             store: _store,
             collapsible: true,
+
+            /**
+             * Because this is a custom store, none of the field helpers are available. If it is not provided in the right way
+             * then we need to provide our own renderers.
+             */
+
             columnCfgs: [
                 {
                    text: 'Artifact', dataIndex: 'FormattedID'
@@ -118,7 +124,7 @@ launch: function() {
                         return record.get('lastPost');
                     }
                 }},
-                {text: 'Last Discussion Date', dataIndex: 'LatestDiscussionAgeInMinutes', renderer: function(age) {
+                {text: 'Last Post Date', dataIndex: 'LatestDiscussionAgeInMinutes', renderer: function(age) {
                         if (age) {
                             return Ext.Date.format(Ext.Date.subtract(new Date(), Ext.Date.MINUTE, age), 'F j, Y, g:i a').toString();
                         }
@@ -128,7 +134,6 @@ launch: function() {
                     }
                 },
                 {text: 'Added By', dataIndex: 'AddedBy', renderer: function(cellvalue, cell, record, idx, count, store, grid) {
-                    console.log(record);
                     return (record && record.get('AddedBy'))?record.get('AddedBy')._refObjectName: '';
                 }}
             ]
